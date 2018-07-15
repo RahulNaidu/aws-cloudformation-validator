@@ -6,7 +6,7 @@ Usage python cf-validator.py --cf_path CF_Template_File --cf_rules Rules_File --
 ```
 ### Parameters:
 
-**--cf_path** [Required]: is the location of CloudFormation template in JSON format. Supported location:
+**--cf_path** [Required]: is the location of CloudFormation template in JSON or YAML format. Supported location:
 * File system – path to CF template on file sytem
 * Web – url to the file on the web e.g. http(s)://my-file.com/my_cf.json
 * S3 – path to file in AWS S3 bucket e.g. s3://my_bucket/my_cf.json
