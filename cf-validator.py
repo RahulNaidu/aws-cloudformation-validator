@@ -20,6 +20,9 @@ import time
 import sys
 import argparse
 import json
+import yaml
+import os
+from cfn_flip import flip, to_yaml, to_json
 import urllib.request, urllib.error, urllib.parse
 from pprint import pprint
 
@@ -275,25 +278,36 @@ def main(arguments):
 
     cf_template = get_template(args.cf_path)
     try:
-        j_cf = json.loads(cf_template)
+        # Load file based on file extension
+        name, ext = os.path.splitext(args.cf_path)
+
+        if '.json' in ext:
+            cf = json.loads(cf_template)
+        else:
+            # Convert to json version to handle yaml shorthand intrinsic functions
+            json_format = to_json(cf_template)
+            cf = json.loads(json_format)
     except:
-        sys.exit("CF Template - not valid json format")
+        if '.json' in ext:
+            sys.exit("CF Template - not valid json format")
+        else:
+            sys.exit("CF Template - not valid yaml format")
 
     if not validate_cf_template(cf_template, args.allow_cap):
         sys.exit("CF Template not valid")
 
     allow_root_keys, allow_parameters, allow_resources, require_ref_attributes, allow_additional_attributes, not_allow_attributes = get_configuration(args.cf_rules)
 
-    if not validate_root_keys(list(j_cf.keys()),allow_root_keys):
+    if not validate_root_keys(list(cf.keys()),allow_root_keys):
         sys.exit("Root Tags are not valid")
 
-    if not validate_parameters(list(j_cf["Parameters"].keys()),allow_parameters):
+    if not validate_parameters(list(cf["Parameters"].keys()),allow_parameters):
         sys.exit("Parameters are not valid")
 
-    if not validate_resources(j_cf["Resources"],allow_resources):
+    if not validate_resources(cf["Resources"],allow_resources):
         sys.exit("Resources are not valid")
 
-    if not validate_attributes(j_cf["Resources"],require_ref_attributes, allow_additional_attributes, not_allow_attributes):
+    if not validate_attributes(cf["Resources"],require_ref_attributes, allow_additional_attributes, not_allow_attributes):
         sys.exit("Require Resources are not valid")
 
     if args.cf_res:
