@@ -13,14 +13,14 @@
 
 #!/usr/bin/env python
 
-from __future__ import print_function
+
 import boto3
 import botocore
 import time
 import sys
 import argparse
 import json
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from pprint import pprint
 
 aws_profile=""
@@ -33,7 +33,7 @@ def get_template(template_file):
     '''
     try:
         if template_file.startswith("http"):
-            response = urllib2.urlopen(template_file)
+            response = urllib.request.urlopen(template_file)
             cf_template = response.read()
         elif template_file.startswith("s3"):
             _, path = (template_file.split("//", 1))
@@ -134,7 +134,7 @@ def validate_resources(cf_resources, valid_resources):
     l_resource = []
     is_valid = False
 
-    for rs in cf_resources.values():
+    for rs in list(cf_resources.values()):
         l_resource.append(rs["Type"].replace('AWS::',''))
 
     if (not valid_resources) or (not l_resource):
@@ -157,7 +157,7 @@ def validate_attributes(cf_resources, require_ref_attributes, allow_additional_a
         Validate attributes of resources in CF template
     '''
 
-    for rs in cf_resources.values():
+    for rs in list(cf_resources.values()):
         rs_type = rs["Type"].replace('AWS::','')
         ref_attr = []
         add_attr = []
@@ -170,13 +170,13 @@ def validate_attributes(cf_resources, require_ref_attributes, allow_additional_a
             not_attr = not_allow_attributes[rs_type]
 
         if (ref_attr) or (add_attr) or (not_attr):
-            for atr_key in rs["Properties"].keys():
+            for atr_key in list(rs["Properties"].keys()):
                 if atr_key in not_attr:
                     print('Not Allow Attribute: ', atr_key)
                     return False
                 elif atr_key in ref_attr:
                     atr_val = rs["Properties"][atr_key]
-                    if isinstance(atr_val, dict) and atr_val.keys()[0] not in 'Ref':
+                    if isinstance(atr_val, dict) and list(atr_val.keys())[0] not in 'Ref':
                         print('Not Refference Attribute: ',atr_key)
                         return False
                     elif isinstance(atr_val, list):
@@ -184,7 +184,7 @@ def validate_attributes(cf_resources, require_ref_attributes, allow_additional_a
                             if not isinstance(o, dict):
                                 print('Not Refference - too nested: ', atr_key)
                                 return False
-                            elif o.keys()[0] not in 'Ref':
+                            elif list(o.keys())[0] not in 'Ref':
                                 print('Not Refference - sub value:', atr_key)
                                 return False
                     elif (not isinstance(atr_val, dict)) and (not isinstance(atr_val, list)):
@@ -284,10 +284,10 @@ def main(arguments):
 
     allow_root_keys, allow_parameters, allow_resources, require_ref_attributes, allow_additional_attributes, not_allow_attributes = get_configuration(args.cf_rules)
 
-    if not validate_root_keys(j_cf.keys(),allow_root_keys):
+    if not validate_root_keys(list(j_cf.keys()),allow_root_keys):
         sys.exit("Root Tags are not valid")
 
-    if not validate_parameters(j_cf["Parameters"].keys(),allow_parameters):
+    if not validate_parameters(list(j_cf["Parameters"].keys()),allow_parameters):
         sys.exit("Parameters are not valid")
 
     if not validate_resources(j_cf["Resources"],allow_resources):
